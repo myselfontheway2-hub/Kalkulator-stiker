@@ -1,42 +1,71 @@
 import streamlit as st
 import math
 
-# Data dari spreadsheet lo
+# --- DATA MASTER DARI CSV ---
 data_material = {
-    "Stiker printing (100x100)": 53.89,
-    "Oracal 651 Glossy (100x126)": 25.95,
-    "Oracal 651 Doff (100x126)": 50.65,
-    "Oracal 651 Gold/Silver": 57.40,
-    "3M Reflective (60x50)": 72.24
+    "Stiker printing (100x100)": 11.98, # Harga per CM dasar
+    "Oracal 651 Glossy (100x126)": 6.75,
+    "Oracal 651 Doff (100x126)": 11.90,
+    "Oracal 651 Gold/Silver": 13.49,
+    "3M Reflective (60x50)": 28.33
 }
 
-st.set_page_config(page_title="Kalkulator Stiker", layout="centered")
+# Biaya Operasional Flat (per cm) sesuai spreadsheet lo
+BIAYA_OPERASIONAL = 5 + 11.90 + 20 + 5  # Cutting + Listrik + Ads + Packaging
 
-st.title("✂️ Kalkulator Stiker")
-st.write("Hitung cepat harga jual dari HP")
+st.set_page_config(page_title="Kalkulator Stiker Otomatis", layout="centered")
 
-# Input User
+st.title("✂️ Kalkulator Stiker V2")
+st.write("Profit otomatis berdasarkan tingkat kesulitan.")
+
+# --- INPUT USER ---
 material = st.selectbox("Pilih Material", list(data_material.keys()))
+
 col1, col2 = st.columns(2)
 with col1:
-    p = st.number_input("Panjang (cm)", min_value=0.1, value=7.0)
+    p = st.number_input("Panjang (cm)", min_value=0.1, value=7.0, step=0.1)
 with col2:
-    l = st.number_input("Lebar (cm)", min_value=0.1, value=7.0)
+    l = st.number_input("Lebar (cm)", min_value=0.1, value=7.0, step=0.1)
 
-kesulitan = st.select_slider("Kesulitan", options=["Easy", "Medium", "Hard"])
+kesulitan = st.select_slider("Pilih Tingkat Kesulitan", options=["Easy", "Medium", "Hard"])
 warna = st.number_input("Jumlah Warna", min_value=1, value=1)
-profit = st.slider("Profit Margin", 1.0, 3.0, 1.5)
 
-# Logika Hitung
-hpp_material = data_material[material]
-multi_susah = {"Easy": 1.0, "Medium": 1.25, "Hard": 1.5}[kesulitan]
+# --- LOGIKA OTOMATIS (REQUEST LO) ---
+# Menentukan profit berdasarkan kesulitan
+if kesulitan == "Easy":
+    profit_setting = 1.00
+elif kesulitan == "Medium":
+    profit_setting = 1.50
+else:  # Hard
+    profit_setting = 2.00
 
-total_hpp = (p * l * hpp_material * multi_susah) + (warna * 500)
-harga_jual = total_hpp * profit
-harga_bulat = math.ceil(harga_jual / 1000) * 1000
+# --- HITUNGAN ---
+hpp_material_awal = data_material[material]
+total_hpp_per_cm = hpp_material_awal + BIAYA_OPERASIONAL
+luas = p * l
 
-# Hasil
+# Total Modal Dasar
+modal_dasar = total_hpp_per_cm * luas
+
+# Tambahan biaya jika lebih dari 1 warna (Contoh: tambah Rp 500 per warna tambahan)
+biaya_warna = (warna - 1) * 500 
+
+total_modal = modal_dasar + biaya_warna
+harga_jual = total_modal * profit_setting
+
+# Pembulatan ke 1000 terdekat ke atas
+harga_final = math.ceil(harga_jual / 1000) * 1000
+
+# --- TAMPILAN HASIL ---
 st.divider()
-st.subheader("Estimasi Harga Jual:")
-st.header(f"Rp {harga_bulat:,}")
-st.caption(f"HPP Asli: Rp {total_hpp:,.0f} | Tanpa Bulat: Rp {harga_jual:,.0f}")
+col_a, col_b = st.columns(2)
+with col_a:
+    st.metric("Profit Otomatis", f"{profit_setting}x")
+with col_b:
+    st.metric("Estimasi Harga", f"Rp {harga_final:,}")
+
+with st.expander("Lihat Rincian Biaya"):
+    st.write(f"HPP Material per cm: Rp {hpp_material_awal}")
+    st.write(f"Total HPP + Operasional: Rp {total_hpp_per_cm:.2f}")
+    st.write(f"Total Modal (HPP x Luas): Rp {total_modal:,.2f}")
+    st.info(f"Karena kesulitan **{kesulitan}**, profit diset ke **{profit_setting}x**")
