@@ -69,4 +69,6 @@ c2.metric("Harga Jual", f"Rp {harga_final:,}")
 with st.expander("Detail Analisis Harga"):
     st.write(f"**Luas Stiker:** {luas} cm²")
     st.write(f"**Modal 1 Warna:** Rp {modal_dasar:,.2f}")
-    st.write(
+    st.write(f"**Tambahan Biaya Warna:** +{int((pengali_warna-1)*100)}%")
+    st.write(f"**Total Modal Akhir:** Rp {total_modal:,.2f}")
+    st.info(f"Setiap tambah warna, modal naik 80% dari harga dasar stiker.")
